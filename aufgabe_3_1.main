@@ -1,0 +1,79 @@
+#include "nnxt.h"
+#include "events_1.h"
+#include "timer.h"
+
+
+#define CLICKED_PORT_1_EV EVENT_1
+#define CLICKED_PORT_2_EV EVENT_2
+#define TIME_OUT_1 EVENT_3
+#define TIME_OUT_2 EVENT_4
+#define SET_TIMER_1 0
+
+
+void task1(){
+    SensorConfig(Port_1, SensorTouch); //Drücken des linken Tasters
+    sensor_touch_clicked_t vorheriger_wert_1 = SensorTouch_released;
+    sensor_touch_clicked_t touch;
+    while(1){
+        Touch_Clicked(Port_1, &touch);
+        if(vorheriger_wert_1 == SensorTouch_released && touch == SensorTouch_clicked){
+                setEvent(CLICKED_PORT_1_EV);
+        }
+        vorheriger_wert_1 = touch;
+        Delay(100);
+    }
+}
+void task2(){
+    SensorConfig(Port_0, SensorTouch); //Drücken des rechten Tasters
+    sensor_touch_clicked_t vorheriger_wert_2 = SensorTouch_released;
+    sensor_touch_clicked_t touch;
+    while(1){
+        Touch_Clicked(Port_0, &touch);
+        if(vorheriger_wert_2 == SensorTouch_released && touch == SensorTouch_clicked){
+                setEvent(CLICKED_PORT_2_EV);
+        }
+        vorheriger_wert_2 = touch;
+        Delay(100);
+    }
+}
+
+
+
+void task3(){
+    motor_dir_t richtung = Motor_dir_forward;
+    MotorPortInit(Port_A);
+    MotorPortInit(Port_B);
+    while(1){
+        if(eventIsSet(CLICKED_PORT_1_EV)){
+            startTimer(SET_TIMER_1);
+            Motor_Drive(Port_A, richtung, 35);
+            Motor_Drive(Port_B, richtung, 35);
+            clearEvent(CLICKED_PORT_1_EV);
+        }
+        if(eventIsSet(CLICKED_PORT_2_EV)){
+            if(richtung == Motor_dir_forward){
+                richtung = Motor_dir_backward;
+            }
+            else{
+                richtung = Motor_dir_forward;
+            }
+            clearEvent(CLICKED_PORT_2_EV);
+        }
+        if(eventIsSet(TIME_OUT_1)){
+                clearEvent(TIME_OUT_1);
+                Motor_Stop(Port_A, Motor_stop_float);
+                Motor_Stop(Port_B, Motor_stop_float);
+        }
+    }
+}
+
+int main(){
+    CreateAndStartTask(task3);
+    CreateAndStartTask(task1);
+    CreateAndStartTask(task2);
+    CreateAndStartTask(task4);
+    setTimer(SET_TIMER_1, 1000, TIME_OUT_1);
+    StartScheduler();
+
+    return 0;
+}
