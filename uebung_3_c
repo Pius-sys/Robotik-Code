@@ -1,0 +1,393 @@
+#include "nnxt.h"
+#include "events.h"
+#include "timer.h"
+
+
+#define CLICKED_PORT_1_EV EVENT_1
+#define CLICKED_PORT_2_EV EVENT_2
+#define TIME_OUT_1 EVENT_3
+#define TIME_OUT_2 EVENT_4
+#define SET_TIMER_1 0
+
+
+void task1(){
+    SensorConfig(Port_1, SensorTouch); //Drücken des linken Tasters
+    sensor_touch_clicked_t vorheriger_wert_1 = SensorTouch_released;
+    sensor_touch_clicked_t touch;
+    while(1){
+        Touch_Clicked(Port_1, &touch);
+        if(vorheriger_wert_1 == SensorTouch_released && touch == SensorTouch_clicked){
+                setEvent(CLICKED_PORT_1_EV);
+        }
+        vorheriger_wert_1 = touch;
+        Delay(100);
+    }
+}
+void task2(){
+    SensorConfig(Port_0, SensorTouch); //Drücken des rechten Tasters
+    sensor_touch_clicked_t vorheriger_wert_2 = SensorTouch_released;
+    sensor_touch_clicked_t touch;
+    while(1){
+        Touch_Clicked(Port_0, &touch);
+        if(vorheriger_wert_2 == SensorTouch_released && touch == SensorTouch_clicked){
+                setEvent(CLICKED_PORT_2_EV);
+        }
+        vorheriger_wert_2 = touch;
+        Delay(100);
+    }
+}
+
+void drehen(int16_t grad){
+    int16_t x;
+        if(grad < 0 && grad >= -90){
+             x = (-1)*grad * 10;
+             Motor_Drive(Port_A, Motor_dir_forward, 35);
+             Motor_Drive(Port_B, Motor_dir_backward, 35);
+             Delay(x);
+             Motor_Stop(Port_A, Motor_stop_float);
+             Motor_Stop(Port_B, Motor_stop_float);
+        }
+        else{
+            Motor_Drive(Port_A, Motor_dir_backward, 35);
+            Motor_Drive(Port_B, Motor_dir_forward, 35);
+        x = grad * 10;
+            Delay(x);
+            Motor_Stop(Port_A, Motor_stop_float);
+            Motor_Stop(Port_B, Motor_stop_float);
+        }
+}
+
+void drive(uint8_t anzahl){
+    Motor_Drive(Port_A, Motor_dir_forward, 35);
+    Motor_Drive(Port_B, Motor_dir_forward, 35);
+    Delay(500 * anzahl);
+    Motor_Stop(Port_A, Motor_stop_float);
+    Motor_Stop(Port_B, Motor_stop_float);
+}
+
+
+void task3(){
+    enum states{S1L, S2L, S2R, S3L, S3R, S4L, S4O, S4R, S5L, S5R, S6L, S6R, S7R};
+    enum states aktueller_zustand = S4O;
+    char text[30];
+    MotorPortInit(Port_A);
+    MotorPortInit(Port_B);
+    NNXT_LCD_DisplayStringAtLine(0, "Hallo");
+    while(1){
+            Delay(100);
+            sprintf(text,"S: %d   ",aktueller_zustand);
+            NNXT_LCD_DisplayStringAtLine(1, text);
+            switch(aktueller_zustand){
+            case S4O:
+                    if(eventIsSet(CLICKED_PORT_1_EV)){
+                        clearEvent(CLICKED_PORT_1_EV);
+                        cancelTimer(SET_TIMER_1);
+                        drehen(90);
+                        drive(1);
+                        aktueller_zustand = S5R;
+                        startTimer(SET_TIMER_1);
+                    }
+                    else if(eventIsSet(CLICKED_PORT_2_EV)){
+                        clearEvent(CLICKED_PORT_2_EV);
+                        cancelTimer(SET_TIMER_1);
+                        drehen(-90);
+                        drive(1);
+                        aktueller_zustand = S3L;
+                        startTimer(SET_TIMER_1);
+                    }
+                    break;
+            case S4R:
+                if(eventIsSet(CLICKED_PORT_1_EV)){
+                        clearEvent(CLICKED_PORT_1_EV);
+                        cancelTimer(SET_TIMER_1);
+                        drive(1);
+                        aktueller_zustand = S5R;
+                        startTimer(SET_TIMER_1);
+                    }
+                    else if(eventIsSet(CLICKED_PORT_2_EV)){
+                        clearEvent(CLICKED_PORT_2_EV);
+                        cancelTimer(SET_TIMER_1);
+                        drehen(180);
+                        drive(1);
+                        aktueller_zustand = S3L;
+                        startTimer(SET_TIMER_1);
+                    }
+                    else if(eventIsSet(TIME_OUT_1)){
+                        clearEvent(TIME_OUT_1);
+                        cancelTimer(SET_TIMER_1);
+                        drehen(-90);
+                        aktueller_zustand = S4O;
+                    }break;
+
+            case S4L:
+                if(eventIsSet(CLICKED_PORT_1_EV)){
+                        clearEvent(CLICKED_PORT_1_EV);
+                        cancelTimer(SET_TIMER_1);
+                        drehen(180);
+                        drive(1);
+                        aktueller_zustand = S5R;
+                        startTimer(SET_TIMER_1);
+                    }
+                    else if(eventIsSet(CLICKED_PORT_2_EV)){
+                        clearEvent(CLICKED_PORT_2_EV);
+                        cancelTimer(SET_TIMER_1);
+                        drive(1);
+                        aktueller_zustand = S3L;
+                        startTimer(SET_TIMER_1);
+                    }
+                    else if(eventIsSet(TIME_OUT_1)){
+                        clearEvent(TIME_OUT_1);
+                        cancelTimer(SET_TIMER_1);
+                        drehen(-90);
+                        aktueller_zustand = S4O;
+                    }break;
+
+            case S5L:
+                if(eventIsSet(CLICKED_PORT_1_EV)){
+                        clearEvent(CLICKED_PORT_1_EV);
+                        cancelTimer(SET_TIMER_1);
+                        drehen(180);
+                        drive(1);
+                        aktueller_zustand = S6R;
+                        startTimer(SET_TIMER_1);
+                    }
+                    else if(eventIsSet(CLICKED_PORT_2_EV)){
+                        clearEvent(CLICKED_PORT_2_EV);
+                        cancelTimer(SET_TIMER_1);
+                        drive(1);
+                        aktueller_zustand = S4L;
+                        startTimer(SET_TIMER_1);
+                    }
+                    else if(eventIsSet(TIME_OUT_1)){
+                        clearEvent(TIME_OUT_1);
+                        cancelTimer(SET_TIMER_1);
+                        drive(1);
+                        drehen(90);
+                        aktueller_zustand = S4O;
+                    }break;
+            case S5R:
+                  if(eventIsSet(CLICKED_PORT_1_EV)){
+                        clearEvent(CLICKED_PORT_1_EV);
+                        cancelTimer(SET_TIMER_1);
+                        drive(1);
+                        aktueller_zustand = S6R;
+                        startTimer(SET_TIMER_1);
+                    }
+                    else if(eventIsSet(CLICKED_PORT_2_EV)){
+                        clearEvent(CLICKED_PORT_2_EV);
+                        cancelTimer(SET_TIMER_1);
+                        drehen(180);
+                        drive(1);
+                        aktueller_zustand = S4L;
+                        startTimer(SET_TIMER_1);
+                    }
+                    else if(eventIsSet(TIME_OUT_1)){
+                        clearEvent(TIME_OUT_1);
+                        cancelTimer(SET_TIMER_1);
+                        drehen(180);
+                        drive(1);
+                        drehen(90);
+                        aktueller_zustand = S4O;
+                    }break;
+            case S6L:
+                if(eventIsSet(CLICKED_PORT_1_EV)){
+                        clearEvent(CLICKED_PORT_1_EV);
+                        cancelTimer(SET_TIMER_1);
+                        drehen(180);
+                        drive(1);
+                        aktueller_zustand = S7R;
+                        startTimer(SET_TIMER_1);
+                    }
+                    else if(eventIsSet(CLICKED_PORT_2_EV)){
+                        clearEvent(CLICKED_PORT_2_EV);
+                        cancelTimer(SET_TIMER_1);
+                        drive(1);
+                        aktueller_zustand = S5L;
+                        startTimer(SET_TIMER_1);
+                    }
+                    else if(eventIsSet(TIME_OUT_1)){
+                        clearEvent(TIME_OUT_1);
+                        cancelTimer(SET_TIMER_1);
+                        drive(2);
+                        drehen(90);
+                        aktueller_zustand = S4O;
+                    }break;
+            case S6R:
+                  if(eventIsSet(CLICKED_PORT_1_EV)){
+                        clearEvent(CLICKED_PORT_1_EV);
+                        cancelTimer(SET_TIMER_1);
+                        drive(1);
+                        aktueller_zustand = S7R;
+                        startTimer(SET_TIMER_1);
+                    }
+                    else if(eventIsSet(CLICKED_PORT_2_EV)){
+                        clearEvent(CLICKED_PORT_2_EV);
+                        cancelTimer(SET_TIMER_1);
+                        drehen(180);
+                        drive(1);
+                        aktueller_zustand = S5L;
+                        startTimer(SET_TIMER_1);
+                    }
+                    else if(eventIsSet(TIME_OUT_1)){
+                        clearEvent(TIME_OUT_1);
+                        cancelTimer(SET_TIMER_1);
+                        drehen(180);
+                        drive(2);
+                        drehen(90);
+                        aktueller_zustand = S4O;
+                    }break;
+            case S7R:
+                  if(eventIsSet(CLICKED_PORT_1_EV)){
+                        clearEvent(CLICKED_PORT_1_EV);
+                        cancelTimer(SET_TIMER_1);
+                        aktueller_zustand = S7R;
+                        startTimer(SET_TIMER_1);
+                    }
+                    else if(eventIsSet(CLICKED_PORT_2_EV)){
+                        clearEvent(CLICKED_PORT_2_EV);
+                        cancelTimer(SET_TIMER_1);
+                        drehen(180);
+                        drive(1);
+                        aktueller_zustand = S6L;
+                        startTimer(SET_TIMER_1);
+                    }
+                    else if(eventIsSet(TIME_OUT_1)){
+                        clearEvent(TIME_OUT_1);
+                        cancelTimer(SET_TIMER_1);
+                        drehen(180);
+                        drive(3);
+                        drehen(90);
+                        aktueller_zustand = S4O;
+                    }break;
+            case S3L:
+                if(eventIsSet(CLICKED_PORT_1_EV)){
+                        clearEvent(CLICKED_PORT_1_EV);
+                        cancelTimer(SET_TIMER_1);
+                        drehen(180);
+                        drive(1);
+                        aktueller_zustand = S4R;
+                        startTimer(SET_TIMER_1);
+                    }
+                    else if(eventIsSet(CLICKED_PORT_2_EV)){
+                        clearEvent(CLICKED_PORT_2_EV);
+                        cancelTimer(SET_TIMER_1);
+                        drive(1);
+                        aktueller_zustand = S2L;
+                        startTimer(SET_TIMER_1);
+                    }
+                    else if(eventIsSet(TIME_OUT_1)){
+                        clearEvent(TIME_OUT_1);
+                        cancelTimer(SET_TIMER_1);
+                        drehen(180);
+                        drive(1);
+                        drehen(-90);
+                        aktueller_zustand = S4O;
+                    }break;
+            case S3R:
+                  if(eventIsSet(CLICKED_PORT_1_EV)){
+                        clearEvent(CLICKED_PORT_1_EV);
+                        cancelTimer(SET_TIMER_1);
+                        drive(1);
+                        aktueller_zustand = S4R;
+                        startTimer(SET_TIMER_1);
+                    }
+                    else if(eventIsSet(CLICKED_PORT_2_EV)){
+                        clearEvent(CLICKED_PORT_2_EV);
+                        cancelTimer(SET_TIMER_1);
+                        drehen(180);
+                        drive(1);
+                        aktueller_zustand = S2L;
+                        startTimer(SET_TIMER_1);
+                    }
+                    else if(eventIsSet(TIME_OUT_1)){
+                        clearEvent(TIME_OUT_1);
+                        cancelTimer(SET_TIMER_1);
+                        drive(1);
+                        drehen(-90);
+                        aktueller_zustand = S4O;
+                    }break;
+
+            case S2L:
+                if(eventIsSet(CLICKED_PORT_1_EV)){
+                        clearEvent(CLICKED_PORT_1_EV);
+                        cancelTimer(SET_TIMER_1);
+                        drehen(180);
+                        drive(1);
+                        aktueller_zustand = S3R;
+                        startTimer(SET_TIMER_1);
+                    }
+                    else if(eventIsSet(CLICKED_PORT_2_EV)){
+                        clearEvent(CLICKED_PORT_2_EV);
+                        cancelTimer(SET_TIMER_1);
+                        drive(1);
+                        aktueller_zustand = S1L;
+                        startTimer(SET_TIMER_1);
+                    }
+                    else if(eventIsSet(TIME_OUT_1)){
+                        clearEvent(TIME_OUT_1);
+                        cancelTimer(SET_TIMER_1);
+                        drehen(180);
+                        drive(2);
+                        drehen(-90);
+                        aktueller_zustand = S4O;
+                    }break;
+            case S2R:
+                  if(eventIsSet(CLICKED_PORT_1_EV)){
+                        clearEvent(CLICKED_PORT_1_EV);
+                        cancelTimer(SET_TIMER_1);
+                        drive(1);
+                        aktueller_zustand = S3R;
+                        startTimer(SET_TIMER_1);
+                    }
+                    else if(eventIsSet(CLICKED_PORT_2_EV)){
+                        clearEvent(CLICKED_PORT_2_EV);
+                        cancelTimer(SET_TIMER_1);
+                        drehen(180);
+                        drive(1);
+                        aktueller_zustand = S1L;
+                        startTimer(SET_TIMER_1);
+                    }
+                    else if(eventIsSet(TIME_OUT_1)){
+                        clearEvent(TIME_OUT_1);
+                        cancelTimer(SET_TIMER_1);
+                        drive(2);
+                        drehen(-90);
+                        aktueller_zustand = S4O;
+                    }break;
+            case S1L:
+                if(eventIsSet(CLICKED_PORT_1_EV)){
+                        clearEvent(CLICKED_PORT_1_EV);
+                        cancelTimer(SET_TIMER_1);
+                        drehen(180);
+                        drive(1);
+                        aktueller_zustand = S2R;
+                        startTimer(SET_TIMER_1);
+                    }
+                    else if(eventIsSet(CLICKED_PORT_2_EV)){
+                        clearEvent(CLICKED_PORT_2_EV);
+                        cancelTimer(SET_TIMER_1);
+                        aktueller_zustand = S1L;
+                        startTimer(SET_TIMER_1);
+                    }
+                    else if(eventIsSet(TIME_OUT_1)){
+                        clearEvent(TIME_OUT_1);
+                        cancelTimer(SET_TIMER_1);
+                        drehen(180);
+                        drive(3);
+                        drehen(-90);
+                        aktueller_zustand = S4O;
+                    }break;
+            }
+    }
+}
+
+int main(){
+    CreateAndStartTask(task3);
+    CreateAndStartTask(task1);
+    CreateAndStartTask(task2);
+    CreateAndStartTask(task4);
+    setTimer(SET_TIMER_1, 5000, TIME_OUT_1);
+    StartScheduler();
+
+    return 0;
+}
