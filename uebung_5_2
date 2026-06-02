@@ -1,0 +1,90 @@
+#include "nnxt.h"
+#include "nnxt_pcf8574lb.h"
+#include "events.h"
+#include "timer.h"
+
+
+#define CLICKED_PORT_1_EV EVENT_1
+#define CLICKED_PORT_2_EV EVENT_2
+#define TIME_OUT_1 EVENT_3
+#define TIME_OUT_2 EVENT_4
+#define SET_TIMER_1 0
+
+void task1(){
+    SensorConfig(Port_3, SensorTouch); //Drücken des linken Tasters
+    sensor_touch_clicked_t vorheriger_wert_1 = SensorTouch_released;
+    sensor_touch_clicked_t touch;
+    while(1){
+        Touch_Clicked(Port_3, &touch);
+        if(vorheriger_wert_1 == SensorTouch_released && touch == SensorTouch_clicked){
+                setEvent(CLICKED_PORT_1_EV);
+        }
+        vorheriger_wert_1 = touch;
+        Delay(100);
+    }
+}
+
+void task2(){
+    SensorConfig(Port_0, SensorTouch); //Drücken des rechten Tasters
+    sensor_touch_clicked_t vorheriger_wert_2 = SensorTouch_released;
+    sensor_touch_clicked_t touch;
+    while(1){
+        Touch_Clicked(Port_0, &touch);
+        if(vorheriger_wert_2 == SensorTouch_released && touch == SensorTouch_clicked){
+                setEvent(CLICKED_PORT_2_EV);
+        }
+        vorheriger_wert_2 = touch;
+        Delay(100);
+    }
+}
+
+void task3(){
+    uint32_t laenge = 500;
+    setTimer(SET_TIMER_1, laenge, TIME_OUT_1);
+    startTimer(SET_TIMER_1);
+    uint16_t write = 1;
+    while(1) {
+        if(eventIsSet(CLICKED_PORT_1_EV)){
+                clearEvent(CLICKED_PORT_1_EV);
+                laenge /=2;
+                setTimer(SET_TIMER_1, laenge, TIME_OUT_1);
+                cancelTimer(SET_TIMER_1);
+                startTimer(SET_TIMER_1);
+                write = 0;
+            }
+        else if(eventIsSet(CLICKED_PORT_2_EV)){
+            clearEvent(CLICKED_PORT_2_EV);
+            laenge *=2;
+            setTimer(SET_TIMER_1, laenge, TIME_OUT_1);
+            cancelTimer(SET_TIMER_1);
+            startTimer(SET_TIMER_1);
+            write = 0;
+        }
+         if(eventIsSet(TIME_OUT_1)){
+                 clearEvent(TIME_OUT_1);
+            if(write){
+                DeletePort(Port_1, 1);
+                write = 0;
+                 NNXT_LCD_DisplayStringAtLine(0,"LED AN ");
+                cancelTimer(SET_TIMER_1);
+                startTimer(SET_TIMER_1);
+            }
+            else if(!(write)){
+                WritePort(Port_1, 1);
+                write = 1;
+                NNXT_LCD_DisplayStringAtLine(0,"LED AUS");
+                cancelTimer(SET_TIMER_1);
+                startTimer(SET_TIMER_1);
+            }
+        }
+    }
+}
+
+int main(){
+    CreateAndStartTask(task1);
+    CreateAndStartTask(task2);
+    CreateAndStartTask(task4);
+    CreateAndStartTask(task3);
+    StartScheduler();
+}
+
