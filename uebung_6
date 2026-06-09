@@ -9,7 +9,7 @@ int main(){
     SensorConfig(Port_1, SensorExt);
     char str[20];
     char ergebnis_string[20];
-    uint32_t tabelle[10][2] = {
+    int32_t tabelle[10][2] = {
     {2430, 10},
     {2180, 12},
     {2035, 14},
