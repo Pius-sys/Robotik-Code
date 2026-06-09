@@ -1,0 +1,44 @@
+#include "nnxt.h"
+#include "stdio.h"
+
+
+int main(){
+    uint16_t value;
+    SensorConfig(Port_1, SensorExt);
+    char str[20];
+    char ergebnis_string[20];
+    uint16_t tabelle[10][2] = {
+    {2430, 10},
+    {2180, 12},
+    {2035, 14},
+    {1885, 15},
+    {1804, 18},
+    {1642, 20},
+    {1423, 25},
+    {1316, 30},
+    {1250, 35},
+    {1229, 40},
+    };
+    uint16_t steigung;
+    uint16_t t;
+    int i;
+    uint16_t ergebnis;
+    while(1){
+        SensorADCWithOutFilter(Port_1, &value);
+        sprintf(str, "%d", value);
+        NNXT_LCD_DisplayStringAtLine(1, str);
+        for(i=0; i<9; i++){
+                if(tabelle[i][0] >= value && value >= tabelle[i+1][0]){
+                        steigung = (tabelle[i][1] - tabelle[i+1][1])/(tabelle[i][0] - tabelle[i+1][0]);
+                        t = tabelle[i][1] - steigung * tabelle[i][0];
+                        ergebnis = steigung * value + t;
+                        break;
+                }
+        }
+        sprintf(ergebnis_string, "%d", (int)(ergebnis));
+        NNXT_LCD_DisplayStringAtLine(2, ergebnis_string);
+		Delay(500);
+    }
+   	return 0;
+}
+
