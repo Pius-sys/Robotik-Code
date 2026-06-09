@@ -1,13 +1,15 @@
 #include "nnxt.h"
 #include "stdio.h"
 
+#define SCALE 1000
+
 
 int main(){
     uint16_t value;
     SensorConfig(Port_1, SensorExt);
     char str[20];
     char ergebnis_string[20];
-    uint16_t tabelle[10][2] = {
+    uint32_t tabelle[10][2] = {
     {2430, 10},
     {2180, 12},
     {2035, 14},
@@ -19,23 +21,23 @@ int main(){
     {1250, 35},
     {1229, 40},
     };
-    uint16_t steigung;
-    uint16_t t;
+    int32_t steigung;
+    int32_t t;
     int i;
-    uint16_t ergebnis;
+    int32_t ergebnis;
     while(1){
         SensorADCWithOutFilter(Port_1, &value);
         sprintf(str, "%d", value);
         NNXT_LCD_DisplayStringAtLine(1, str);
         for(i=0; i<9; i++){
                 if(tabelle[i][0] >= value && value >= tabelle[i+1][0]){
-                        steigung = (tabelle[i][1] - tabelle[i+1][1])/(tabelle[i][0] - tabelle[i+1][0]);
-                        t = tabelle[i][1] - steigung * tabelle[i][0];
+                        steigung = ((tabelle[i][1] - tabelle[i+1][1])*SCALE)/(tabelle[i][0] - tabelle[i+1][0]);
+                        t = (tabelle[i][1])*SCALE - steigung * tabelle[i][0];
                         ergebnis = steigung * value + t;
                         break;
                 }
         }
-        sprintf(ergebnis_string, "%d", (int)(ergebnis));
+        sprintf(ergebnis_string, "%d", ergebnis/SCALE);
         NNXT_LCD_DisplayStringAtLine(2, ergebnis_string);
 		Delay(500);
     }
