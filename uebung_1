@@ -1,0 +1,51 @@
+#include "nnxt.h"
+
+
+
+
+int main(){
+
+    //Initialisierung
+    MotorPortInit(Port_A);
+    MotorPortInit(Port_B);
+
+    //Konfigurieren des Ultraschallsensors
+    SensorConfig(Port_0, SensorUS);
+
+    //Ultraschallsensor
+    sensor_error_t err;
+    uint8_t dist;
+
+    while(1){
+        err = US_GetDistance(Port_0,&dist);
+        if (err!=sensor_error_NoError){
+            NNXT_LCD_DisplayStringAtLine(0, "Sensor Error!!!!   ");
+
+            break;
+        }
+        else{
+                if(dist < 20){
+                    Motor_Drive(Port_A, Motor_dir_forward, 32);
+                    Motor_Drive(Port_B, Motor_dir_backward, 35);
+
+                    Delay(500);
+
+                     Motor_Stop(Port_A, Motor_stop_float);
+                     Motor_Stop(Port_B, Motor_stop_float);
+
+
+                }
+                else{
+                        Motor_Drive(Port_A, Motor_dir_forward, 32);
+                        Motor_Drive(Port_B, Motor_dir_forward, 35);
+
+                        Delay(800);
+
+                        Motor_Stop(Port_A, Motor_stop_float);
+                        Motor_Stop(Port_B, Motor_stop_float);
+                }
+        }
+    }
+   	return 0;
+}
+
