@@ -1,0 +1,48 @@
+#include "nnxt.h"
+double power = 0;
+double istGeschwindigkeit = 0;
+double delta_t =0;
+double Kp_faktor=1;
+double Ki_faktor=0.8;
+double Kd_faktor=1;
+double x;
+double s1=0;
+double delta_alt=0;
+#define sollGeschwindigkeit 9
+#define DEG_TO_RPM 166.6667
+int main(){
+    char rpmMsg[10];                        // enthält Umdrehung/min als String für Ausgabe auf Display
+    uint32_t prev_deg, deg;                 // deg enthält Differenz vom Zähler jetzt und bei der letzten Messung vor 500ms (prev_deg)
+    uint32_t dt, prev_tick = GetSysTime();  // dt enthält Differenz der Zeiten jetzt und der Zeit der letzten Messung (prev_tick)
+    double rpm;                             // enthält Wert der Umdrehungen pro Minute
+    MotorPortInit(Port_A);
+    Motor_Tacho_GetCounter(Port_A, &prev_deg);
+    Motor_Drive(Port_A, Motor_dir_forward, 20);        // hier gerne mal anpassen und probieren
+
+    while(1){
+        Delay(100);                                    // Abtastintervall 500ms
+        dt = GetSysTime() - prev_tick;                 // Zeitdifferenz seit letzter Messung ermitteln
+        Motor_Tacho_GetCounter(Port_A, &deg);
+        deg = deg - prev_deg;                          // um wieviel ist der Umdrehungszähler seit letzter Messung gewachsen
+        rpm = ((deg*1.33) * DEG_TO_RPM) / (double)dt;  // deg*1.33 weil Auflösung Drehzahlsensor 1 Digit entspr. 1,33 Grad
+        istGeschwindigkeit = ((3.14*4.3)*rpm)/60;
+        delta_t = sollGeschwindigkeit-istGeschwindigkeit;
+        s1+=delta_t;
+        x=Kp_faktor*delta_t + Ki_faktor*0.1*s1 +  Kd_faktor*((delta_t-delta_alt)/0.1)   ;
+        power=x;
+        if(power>100){
+            power=100;
+        }
+        else if(power<0){
+            power=0;
+        }
+        Motor_Drive(Port_A, Motor_dir_forward, power);
+        delta_alt=delta_t;
+        printf("%lf\n",power);
+        Motor_Tacho_GetCounter(Port_A, &prev_deg);     // Zählerstand für nächste Messung vorbereiten
+        prev_tick = GetSysTime();                      // Zeitmessung für nächste Messung vorbereiten
+        sprintf(rpmMsg,"%d  ",(int)rpm);
+        NNXT_LCD_DisplayStringAtLine(0,rpmMsg);
+    }
+    return 0;
+}
